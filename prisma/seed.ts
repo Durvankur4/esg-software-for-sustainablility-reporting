@@ -1,4 +1,4 @@
-import { ActivityType, FactorStatus, PrismaClient } from "@prisma/client";
+import { ActivityType, FactorStatus, PrismaClient } from "@prisma/client/index";
 
 const prisma = new PrismaClient();
 
