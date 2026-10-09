@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Workspace {
+  id              String           @id @default(uuid())
+  name            String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  evidence        Evidence[]
+  emissionFactors EmissionFactor[]
+}
+
+model Evidence {
+  id                String         @id @default(uuid())
+  workspaceId       String
+  sourceType        EvidenceSource
+  title             String
+  receivedAt        DateTime
+  externalReference String?
+  sourceUri         String?
+  checksum          String?
+  metadata          Json?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  workspace         Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  extractions       Extraction[]
+  facts             ActivityFact[]
+}
+
+model Extraction {
+  id            String           @id @default(uuid())
+  evidenceId    String
+  structuredValue Json
+  confidence    Decimal?         @db.Decimal(5, 4)
+  sourceLocator String?
+  status        ExtractionStatus @default(DRAFT)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  evidence      Evidence         @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  facts         ActivityFact[]
+  reviews       ReviewDecision[]
+}
+
+model ActivityFact {
+  id           String       @id @default(uuid())
+  evidenceId   String
+  extractionId String?
+  state        FactState    @default(DRAFT)
+  quantity     Decimal      @db.Decimal(18, 6)
+  unit         String
+  activityType ActivityType
+  periodStart  DateTime
+  periodEnd    DateTime
+  siteContext  String?
+  supplierContext String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  evidence     Evidence     @relation(fields: [evidenceId], references: [id], onDelete: Restrict)
+  extraction   Extraction?  @relation(fields: [extractionId], references: [id], onDelete: SetNull)
+  reviews      ReviewDecision[]
+  results      CalculationResult[]
+}
+
+model ReviewDecision {
+  id           String         @id @default(uuid())
+  extractionId String?
+  factId       String?
+  reviewerId   String
+  decision     ReviewDecisionType
+  rationale    String
+  decidedAt    DateTime       @default(now())
+  extraction   Extraction?    @relation(fields: [extractionId], references: [id], onDelete: Cascade)
+  fact         ActivityFact?  @relation(fields: [factId], references: [id], onDelete: Cascade)
+}
+
+model EmissionFactor {
+  id              String       @id @default(uuid())
+  workspaceId     String
+  activityType    ActivityType
+  value           Decimal      @db.Decimal(18, 8)
+  numeratorUnit   String
+  denominatorUnit String
+  source          String
+  methodology     String
+  geography       String?
+  validFrom       DateTime
+  validTo         DateTime?
+  status          FactorStatus @default(DRAFT)
+  semanticVersion String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  workspace       Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, semanticVersion])
+}
+
+model CalculationRun {
+  id                 String              @id @default(uuid())
+  calculationVersion String
+  inputSnapshot      Json
+  factorSnapshot     Json
+  status             CalculationRunStatus @default(COMPLETED)
+  createdAt          DateTime            @default(now())
+  results            CalculationResult[]
+}
+
+model CalculationResult {
+  id          String           @id @default(uuid())
+  runId       String
+  factId      String
+  quantity    Decimal          @db.Decimal(18, 6)
+  unit        String
+  status      CalculationResultStatus @default(COMPLETED)
+  createdAt   DateTime         @default(now())
+  run         CalculationRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
+  fact        ActivityFact     @relation(fields: [factId], references: [id], onDelete: Restrict)
+  disclosures Disclosure[]
+}
+
+model Disclosure {
+  id                  String           @id @default(uuid())
+  calculationResultId String
+  framework           DisclosureFramework
+  requirementReference String
+  reportingPeriod     String
+  status              DisclosureStatus @default(DRAFT)
+  publishedAt         DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  calculationResult   CalculationResult @relation(fields: [calculationResultId], references: [id], onDelete: Restrict)
+}
+
+enum EvidenceSource {
+  INVOICE
+  UTILITY_BILL
+  SUPPLIER_DECLARATION
+  ERP_EXPORT
+  SHIPPING_DOCUMENT
+  EMAIL
+  PURCHASE_ORDER
+  OTHER
+}
+
+enum ExtractionStatus {
+  DRAFT
+  REVIEWED
+  REJECTED
+}
+
+enum FactState {
+  DRAFT
+  IN_REVIEW
+  VALIDATED
+  REJECTED
+}
+
+enum ActivityType {
+  ELECTRICITY
+  NATURAL_GAS
+  FUEL
+  FREIGHT
+  WASTE
+  OTHER
+}
+
+enum ReviewDecisionType {
+  VALIDATED
+  REJECTED
+}
+
+enum FactorStatus {
+  DRAFT
+  PUBLISHED
+  RETIRED
+}
+
+enum CalculationRunStatus {
+  COMPLETED
+  FAILED
+}
+
+enum CalculationResultStatus {
+  COMPLETED
+  SUPERSEDED
+}
+
+enum DisclosureFramework {
+  GRI
+  ISSB
+  ESRS
+}
+
+enum DisclosureStatus {
+  DRAFT
+  IN_REVIEW
+  PUBLISHED
+}
