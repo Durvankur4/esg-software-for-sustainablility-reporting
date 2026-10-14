@@ -29,6 +29,18 @@ npm run build
 ```
 
 Database commands use `DATABASE_URL` from `.env`. Stop the local database with `docker compose down`; add `-v` only when intentionally removing local database data.
+
+## Evidence Desk demo
+
+`evidence-desk-demo/` is a standalone, local-first document-extraction demo. It accepts synthetic or user-supplied electricity bills and fuel receipts as PNG, JPG, or PDF, runs a local Ollama vision model by default, and supports human review plus JSON/CSV export.
+
+```bash
+cd evidence-desk-demo
+ollama serve
+npm start
+```
+
+Open `http://localhost:3000` and use the included fictional documents in `evidence-desk-demo/samples/`. See `evidence-desk-demo/README.md` for configuration, limitations, and the optional server-side OpenAI path.
 this project will follow RPI styled approach of software development
 we would be using Human Layer + genesis and Codex for the development
 For an ESG/ESRS product a modular monolith + asynchronous architecture is adequate
