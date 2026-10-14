@@ -58,12 +58,31 @@ export async function extractDocument(input: { mimeType: string; dataUrl: string
   if (!["application/pdf", "image/jpeg", "image/png"].includes(input.mimeType)) throw new Error("Only PDF, JPG, and PNG documents are supported.");
   if (!input.dataUrl.startsWith(`data:${input.mimeType};base64,`)) throw new Error("The uploaded document could not be read.");
   if (Buffer.from(input.dataUrl.split(",")[1], "base64").length > maxBytes) throw new Error("Choose a document smaller than 10 MB.");
-  const provider = process.env.EXTRACTOR_PROVIDER || "ollama";
+  const provider = process.env.EXTRACTOR_PROVIDER || "openrouter";
   if (provider === "ollama") {
     const response = await fetch(`${process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434"}/api/chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: process.env.OLLAMA_MODEL || "gemma4:12b", format: "json", stream: false, messages: [{ role: "user", content: prompt(), images: [await imageForLocalModel(input.mimeType, input.dataUrl)] }] }) }).catch(() => { throw new Error("Local AI extraction is unavailable. Start Ollama with `ollama serve` and confirm the model is installed."); });
     if (!response.ok) throw new Error(`Local AI extraction returned ${response.status}. Confirm Ollama is running and the selected model is installed.`);
     const result = await response.json() as { message?: { content?: string } };
     try { return normalize(JSON.parse(result.message?.content || "")); } catch { throw new Error("Local AI extraction returned an unreadable result. No data was saved."); }
+  }
+  if (provider === "openrouter") {
+    if (!process.env.OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY is not configured on the server.");
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": process.env.APP_URL || "http://localhost:3000",
+        "X-OpenRouter-Title": "Verity Evidence Extraction Demo"
+      },
+      body: JSON.stringify({
+        model: process.env.OPENROUTER_MODEL || "google/gemma-3-27b-it:free",
+        messages: [{ role: "user", content: [{ type: "text", text: prompt() }, { type: "image_url", image_url: { url: `data:image/png;base64,${await imageForLocalModel(input.mimeType, input.dataUrl)}` } }] }]
+      })
+    });
+    if (!response.ok) throw new Error(`OpenRouter extraction returned ${response.status}. Check the selected model, key, or free-tier rate limit.`);
+    const result = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+    try { return normalize(JSON.parse(result.choices?.[0]?.message?.content || "")); } catch { throw new Error("OpenRouter returned an unreadable result. No data was saved."); }
   }
   if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured on the server.");
   const content = input.mimeType === "application/pdf" ? { type: "input_file", filename: "document.pdf", file_data: input.dataUrl, detail: "high" } : { type: "input_image", image_url: input.dataUrl, detail: "high" };
