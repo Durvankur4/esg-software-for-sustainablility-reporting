@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 
-const links = [{ href: "/evidence", label: "Evidence" }, { href: "/review", label: "Review Queue" }, { href: "/calculations", label: "Calculations" }, { href: "/disclosures", label: "Disclosures" }, { href: "/audit", label: "Audit Trail" }];
+const links = [{ href: "/evidence", label: "Evidence" }, { href: "/evidence/extract", label: "AI Extraction" }, { href: "/review", label: "Review Queue" }, { href: "/calculations", label: "Calculations" }, { href: "/disclosures", label: "Disclosures" }, { href: "/audit", label: "Audit Trail" }];
 
 export function Navigation() {
   const pathname = usePathname();

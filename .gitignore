@@ -6,6 +6,8 @@
 .env
 node_modules/
 .next/
+.DS_Store
+*.tsbuildinfo
 
 # Riptide artifacts (cloud-synced)
 .humanlayer/tasks/
