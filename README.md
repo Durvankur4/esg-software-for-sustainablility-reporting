@@ -32,14 +32,15 @@ Database commands use `DATABASE_URL` from `.env`. Stop the local database with `
 
 ## AI evidence extraction demo
 
-The integrated **AI Extraction** screen accepts electricity bills and fuel receipts as PNG, JPG, or PDF, runs a local Ollama vision model by default, and supports human review plus JSON/CSV export.
+The integrated **AI Extraction** screen accepts electricity bills and fuel receipts as PNG, JPG, or PDF, uses an OpenRouter vision model by default, and supports human review plus JSON/CSV export.
 
 ```bash
-ollama serve
 npm run dev
 ```
 
-Open `http://localhost:3000/evidence/extract` and use the included fictional documents in `public/demo-samples/`. The default extractor is the local, free `gemma4:12b` Ollama model. To use a server-side OpenAI provider instead, configure `EXTRACTOR_PROVIDER=openai`, `OPENAI_API_KEY`, and optionally `OPENAI_MODEL`; never expose that key in browser code.
+Copy `.env.example` to `.env`, set `OPENROUTER_API_KEY`, and then open `http://localhost:3000/evidence/extract`. Use the included fictional documents in `public/demo-samples/`. The default `OPENROUTER_MODEL=google/gemma-3-27b-it:free` is a configurable free-tier model selection, but availability and rate limits are controlled by OpenRouter. OpenRouter documents its OpenAI-compatible chat-completions endpoint and model catalog at https://openrouter.ai/docs/quickstart.
+
+GitHub Pages is configured as a static landing page in this repository, not as the application backend: Pages cannot safely keep `OPENROUTER_API_KEY` secret or host an AI model. Deploy the Next.js app to a server-capable platform and set the same environment variables there for a working public extraction demo.
 this project will follow RPI styled approach of software development
 we would be using Human Layer + genesis and Codex for the development
 For an ESG/ESRS product a modular monolith + asynchronous architecture is adequate
